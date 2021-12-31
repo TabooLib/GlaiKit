@@ -1,0 +1,2 @@
+script-compile: '正在编译源码 ...'
+script-compile-success: '编译完成 ({0}ms)'

@@ -10,10 +10,7 @@ import kotlin.script.experimental.annotations.KotlinScript
 import kotlin.script.experimental.api.*
 import kotlin.script.experimental.dependencies.DependsOn
 import kotlin.script.experimental.dependencies.Repository
-import kotlin.script.experimental.jvm.baseClassLoader
-import kotlin.script.experimental.jvm.dependenciesFromClassContext
-import kotlin.script.experimental.jvm.dependenciesFromCurrentContext
-import kotlin.script.experimental.jvm.jvm
+import kotlin.script.experimental.jvm.*
 
 @KotlinScript(
     fileExtension = "kts",
@@ -29,8 +26,11 @@ class GlaiKotlinScriptConfiguration : ScriptCompilationConfiguration(
         defaultImports(DependsOn::class, Repository::class, Import::class, CompilerOptions::class)
         defaultImports.append(GlaiEnv.globalImports)
         jvm {
-            dependenciesFromClassContext(GlaiKotlinScriptConfiguration::class, "kotlin-stdlib", "kotlin-reflect")
-            dependenciesFromCurrentContext(wholeClasspath = true)
+            dependenciesFromClassContext(GlaiKotlinScriptConfiguration::class, wholeClasspath = true)
+            compilerOptions(
+                "-Xopt-in=kotlin.time.ExperimentalTime,kotlin.ExperimentalStdlibApi,kotlinx.coroutines.ExperimentalCoroutinesApi",
+                "-jvm-target", "1.8"
+            )
         }
         refineConfiguration {
             onAnnotations(DependsOn::class, Repository::class, Import::class, CompilerOptions::class, handler = MainKtsConfigurator())
@@ -46,6 +46,7 @@ class GlaiScriptEvaluationConfiguration : ScriptEvaluationConfiguration(
         scriptsInstancesSharing(true)
         jvm {
             baseClassLoader(GlaiKotlinScriptConfiguration::class.java.classLoader)
+            loadDependencies(false)
         }
     }
 )

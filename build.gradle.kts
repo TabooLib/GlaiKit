@@ -28,7 +28,7 @@ taboolib {
     )
     options("skip-kotlin-relocate")
     classifier = null
-    version = "6.0.7-6"
+    version = "6.0.7-14"
     exclude("module-info")
 }
 

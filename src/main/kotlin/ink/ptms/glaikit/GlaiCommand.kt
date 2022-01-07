@@ -25,13 +25,18 @@ object GlaiCommand {
             GlaiEvaluator.setupScriptFiles()
         }
         dynamic(commit = "file") {
-            suggestion<ProxyCommandSender> { _, _ ->
-                newFile(getDataFolder(), "scripts", folder = true).listFiles()!!.map {
-                    it.nameWithoutExtension
-                }
+            suggestion<ProxyCommandSender>(uncheck = true) { _, _ ->
+                newFile(getDataFolder(), "scripts", folder = true).listFiles()
+                    ?.filter { it.extension == "kts" || it.extension == "kit" }
+                    ?.map { it.name }
             }
-            execute<ProxyCommandSender> { _, _, argument ->
-                GlaiEvaluator.evalFile(File(getDataFolder(), "scripts/${argument}.kit"))
+            execute<ProxyCommandSender> { sender, _, argument ->
+                val file = File(getDataFolder(), "scripts/${argument}")
+                if (file.exists() && (file.extension == "kts" || file.extension == "kit")) {
+                    GlaiEvaluator.evalFileAndReport(file)
+                } else {
+                    sender.sendMessage("§cScript file not found")
+                }
             }
         }
     }

@@ -3,6 +3,7 @@ package ink.ptms.glaikit
 import kotlinx.coroutines.runBlocking
 import taboolib.common.io.digest
 import taboolib.common.io.newFile
+import taboolib.common.platform.ProxyCommandSender
 import taboolib.common.platform.function.console
 import taboolib.common.platform.function.getDataFolder
 import taboolib.common.platform.function.info
@@ -22,9 +23,11 @@ object GlaiEvaluator {
      * 运行所有脚本文件
      */
     fun setupScriptFiles() {
-        newFile(getDataFolder(), "script/.lazy", folder = true)
-        newFile(getDataFolder(), "script/.build", folder = true)
-        newFile(getDataFolder(), "script/.include", folder = true)
+        // 创建环境目录
+        newFile(getDataFolder(), "scripts/.lazy", folder = true)
+        newFile(getDataFolder(), "scripts/.build", folder = true)
+        newFile(getDataFolder(), "scripts/.include", folder = true)
+        // 加载脚本
         fun load(file: File) {
             if (file.name.startsWith(".")) {
                 return
@@ -32,14 +35,8 @@ object GlaiEvaluator {
             file.listFiles()?.forEach {
                 if (it.isDirectory) {
                     load(it)
-                } else {
-                    evalFile(it).thenAccept { result ->
-                        result.reports.forEach { rea ->
-                            if (rea.severity > ScriptDiagnostic.Severity.DEBUG && !rea.message.contains("never used")) {
-                                info(" : ${file.name} : ${rea.message}" + if (rea.exception == null) "" else ": ${rea.exception}")
-                            }
-                        }
-                    }
+                } else if (it.extension == "kts") {
+                    evalFileAndReport(it)
                 }
             }
         }
@@ -49,7 +46,7 @@ object GlaiEvaluator {
     /**
      * 运行脚本文件，无需进行任何操作
      */
-    fun evalFile(scriptFile: File): CompletableFuture<ResultWithDiagnostics<EvaluationResult>> {
+    fun evalFile(scriptFile: File, useCache: Boolean = true, notify: Boolean = true): CompletableFuture<ResultWithDiagnostics<EvaluationResult>> {
         val future = CompletableFuture<ResultWithDiagnostics<EvaluationResult>>()
         if (scriptFile.extension == "kit") {
             future.complete(evalCacheFile(scriptFile))
@@ -57,9 +54,9 @@ object GlaiEvaluator {
         }
         // 获取签名
         val digest = scriptFile.digest("sha-1")
-        // 检查编译文件
         val cacheFile = File(getDataFolder(), "scripts/.build/${scriptFile.nameWithoutExtension}.kit")
-        if (cacheFile.exists()) {
+        // 检查编译文件
+        if (cacheFile.exists() && useCache) {
             val result = evalCacheFile(cacheFile, digest)
             if (result != null) {
                 future.complete(result)
@@ -68,22 +65,38 @@ object GlaiEvaluator {
         }
         submit(async = true) {
             runBlocking {
-                info(" : ${scriptFile.name} : ${console().asLangText("script-compile")}")
+                if (notify) {
+                    info(": ${scriptFile.name} : ${console().asLangText("script-compile")}")
+                }
                 val time = System.currentTimeMillis()
                 scriptingHost.compiler(scriptFile.toScriptSource(), GlaiKotlinScriptConfiguration()).onSuccess {
-                    ByteArrayOutputStream().use { byteArrayOutputStream ->
-                        ObjectOutputStream(byteArrayOutputStream).use { objectOutputStream ->
-                            objectOutputStream.writeObject(digest)
-                            objectOutputStream.writeObject(it)
+                    if (useCache) {
+                        ByteArrayOutputStream().use { byteArrayOutputStream ->
+                            ObjectOutputStream(byteArrayOutputStream).use { objectOutputStream ->
+                                objectOutputStream.writeObject(digest)
+                                objectOutputStream.writeObject(it)
+                            }
+                            cacheFile.writeBytes(byteArrayOutputStream.toByteArray())
                         }
-                        cacheFile.writeBytes(byteArrayOutputStream.toByteArray())
                     }
-                    info(" : ${scriptFile.name} : ${console().asLangText("script-compile-success", System.currentTimeMillis() - time)}")
-                    scriptingHost.evaluator(it, GlaiScriptEvaluationConfiguration()).also { future.complete(it) }
-                }
+                    if (notify) {
+                        info(": ${scriptFile.name} : ${console().asLangText("script-compile-success", System.currentTimeMillis() - time)}")
+                    }
+                    scriptingHost.evaluator(it, GlaiScriptEvaluationConfiguration()).also { r -> future.complete(r) }
+                }.onFailure { r -> future.complete(r) }
             }
         }
         return future
+    }
+
+    fun evalFileAndReport(scriptFile: File, sender: ProxyCommandSender = console()) {
+        evalFile(scriptFile).thenAccept { result ->
+            result.reports.forEach { rea ->
+                if (rea.severity > ScriptDiagnostic.Severity.DEBUG && !rea.message.contains("never used")) {
+                    sender.sendMessage(": ${scriptFile.name} : ${rea.message}" + if (rea.exception == null) "" else ": ${rea.exception}")
+                }
+            }
+        }
     }
 
     private fun evalCacheFile(cacheFile: File, digest: String? = null): ResultWithDiagnostics<EvaluationResult>? {

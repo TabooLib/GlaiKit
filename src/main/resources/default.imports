@@ -36,6 +36,8 @@ java
 
 -ink.ptms.glaikit.taboolib.common.env
 -ink.ptms.glaikit.taboolib.common.inject
+-ink.ptms.glaikit.taboolib.common.util.Location
+-ink.ptms.glaikit.taboolib.common.util.Vector
 -ink.ptms.glaikit.taboolib.library
 -ink.ptms.glaikit.taboolib.module.kether.action
 

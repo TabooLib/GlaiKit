@@ -4,6 +4,7 @@ import io.github.lukehutch.fastclasspathscanner.FastClasspathScanner
 import taboolib.common.platform.function.getDataFolder
 import taboolib.common.platform.function.releaseResourceFile
 import java.io.File
+import java.nio.charset.StandardCharsets
 
 object GlaiEnv {
 
@@ -30,6 +31,7 @@ object GlaiEnv {
     fun setupGlobalImports() {
         globalImports.clear()
         globalImports.addAll(loadImportsFromFile(releaseResourceFile("default.imports")))
+        globalImports.addAll(loadFunctionsFromFile(releaseResourceFile("default.functions")))
     }
 
     fun loadImportsFromFile(file: File): List<String> {
@@ -41,5 +43,15 @@ object GlaiEnv {
             .filter { it.isNotEmpty() }
             .toSet()
             .map { "$it.*" }
+    }
+
+    /**
+     * Kotlin 中的顶层函数需要单独引入，不能使用 FastClasspathScanner 扫描
+     *
+     * 同时还需要保留 kotlin_module 文件
+     * 该文件中记录了顶层函数的所有信息
+     */
+    fun loadFunctionsFromFile(file: File): List<String> {
+        return file.readLines(StandardCharsets.UTF_8).filter { it.isNotBlank() }
     }
 }

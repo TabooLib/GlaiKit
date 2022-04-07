@@ -21,16 +21,12 @@ class GlaiKotlinScript(val args: Array<String>)
 
 class GlaiKotlinScriptConfiguration : ScriptCompilationConfiguration(
     {
-        // 因为 kts 无法识别 taboolib 的顶级函数，因此需要在父类中重新定义
         baseClass(ScriptBase::class)
         defaultImports(DependsOn::class, Repository::class, Import::class, CompilerOptions::class)
         defaultImports.append(GlaiEnv.globalImports)
         jvm {
             dependenciesFromClassContext(GlaiKotlinScriptConfiguration::class, wholeClasspath = true)
-            compilerOptions(
-                "-Xopt-in=kotlin.time.ExperimentalTime,kotlin.ExperimentalStdlibApi,kotlinx.coroutines.ExperimentalCoroutinesApi",
-                "-jvm-target", "1.8"
-            )
+            compilerOptions("-jvm-target", "1.8")
         }
         refineConfiguration {
             onAnnotations(DependsOn::class, Repository::class, Import::class, CompilerOptions::class, handler = MainKtsConfigurator())

@@ -1,7 +1,7 @@
 plugins {
     java
     `maven-publish`
-    id("io.izzel.taboolib") version "1.34"
+    id("io.izzel.taboolib") version "1.38"
     id("org.jetbrains.kotlin.jvm") version "1.5.10"
 }
 
@@ -21,15 +21,24 @@ taboolib {
         "module-ai",
         "module-porticus", // bungee
     )
-    install("expansion-player-database", "expansion-command-helper")
+    install(
+        "expansion-command-helper",
+        "expansion-player-database"
+    )
     install(
         "platform-bukkit",
         "platform-bungee"
     )
-    options("skip-kotlin-relocate")
+    options("skip-taboolib-relocate", "skip-kotlin-relocate", "skip-minimize", "keep-kotlin-module")
     classifier = null
-    version = "6.0.7-15"
+    version = "6.0.7-52"
     exclude("module-info")
+    relocate("io.github.lukehutch", "taboolib.library")
+    relocate("taboolib.common.OpenAPI", "!ink.ptms.glaikit.taboolib.common")
+    relocate("taboolib.platform.BukkitPlugin", "!ink.ptms.glaikit.taboolib.platform")
+    relocate("taboolib.platform.BungeePlugin", "!ink.ptms.glaikit.taboolib.platform")
+    relocate("taboolib.platform.type.BukkitProxyEvent", "!ink.ptms.glaikit.taboolib.platform.type")
+    relocate("taboolib.platform.type.BungeeProxyEvent", "!ink.ptms.glaikit.taboolib.platform.type")
 }
 
 repositories {

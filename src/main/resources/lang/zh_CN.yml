@@ -1,2 +1,4 @@
 script-compile: '正在编译 ...'
 script-compile-success: '编译完成, 耗时 {0} 毫秒。'
+script-eval: '运行结束。'
+script-file-not-found: '&c没有找到 {0} 脚本。'

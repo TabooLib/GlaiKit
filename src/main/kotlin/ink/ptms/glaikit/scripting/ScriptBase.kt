@@ -1,6 +1,5 @@
 package ink.ptms.glaikit.scripting
 
-
 /**
  * GlaiKit
  * ink.ptms.glaikit.scripting.ScriptBase

@@ -13,6 +13,7 @@ import java.io.*
 import java.util.concurrent.CompletableFuture
 import kotlin.script.experimental.api.*
 import kotlin.script.experimental.host.toScriptSource
+import kotlin.script.experimental.jvm.util.isError
 import kotlin.script.experimental.jvmhost.BasicJvmScriptingHost
 
 object GlaiEvaluator {
@@ -89,11 +90,13 @@ object GlaiEvaluator {
         return future
     }
 
-    fun evalFileAndReport(scriptFile: File, sender: ProxyCommandSender = console()) {
-        evalFile(scriptFile).thenAccept { result ->
-            result.reports.forEach { rea ->
-                if (rea.severity > ScriptDiagnostic.Severity.DEBUG && !rea.message.contains("never used")) {
-                    sender.sendMessage(": ${scriptFile.name} : ${rea.message}" + if (rea.exception == null) "" else ": ${rea.exception}")
+    fun evalFileAndReport(scriptFile: File, sender: ProxyCommandSender = console()): CompletableFuture<ResultWithDiagnostics<EvaluationResult>> {
+        return evalFile(scriptFile).also {
+            it.thenApply { result ->
+                result.reports.forEach { rea ->
+                    if (rea.severity > ScriptDiagnostic.Severity.DEBUG && !rea.message.contains("never used")) {
+                        sender.sendMessage(": ${scriptFile.name} : ${rea.message}" + if (rea.exception == null) "" else ": ${rea.exception}")
+                    }
                 }
             }
         }

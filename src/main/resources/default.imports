@@ -34,14 +34,18 @@
 kotlin
 java
 
--ink.ptms.glaikit.taboolib.common.env
--ink.ptms.glaikit.taboolib.common.inject
--ink.ptms.glaikit.taboolib.common.util.Location
--ink.ptms.glaikit.taboolib.common.util.Vector
--ink.ptms.glaikit.taboolib.library
--ink.ptms.glaikit.taboolib.module.kether.action
+-taboolib.common.env
+-taboolib.common.inject
+-taboolib.common.util.Location
+-taboolib.common.util.Vector
+-taboolib.library.asm
+-taboolib.library.fastclasspathscanner
+-taboolib.library.jarrelocator
+-taboolib.library.kether
+-taboolib.module.kether.action
 
-ink.ptms.glaikit.taboolib
+taboolib
+
 ink.ptms.glaikit.scripting
 
 -org.bukkit.craftbukkit

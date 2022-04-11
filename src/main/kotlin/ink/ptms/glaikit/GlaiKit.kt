@@ -21,7 +21,7 @@ object GlaiKit : Plugin() {
         GlaiEnv.setupClasspath()
         GlaiEnv.setupGlobalImports()
         try {
-            GlaiEvaluator.setupScriptFiles()
+            GlaiEvaluator.setupScriptFiles(compileAsync = false)
         } catch (ex: Throwable) {
             ex.printStackTrace()
         }

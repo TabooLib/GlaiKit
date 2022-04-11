@@ -1,13 +1,12 @@
 package ink.ptms.glaikit.kts
 
 import taboolib.common.io.digest
-import taboolib.common.platform.function.console
-import taboolib.common.platform.function.info
-import taboolib.module.lang.asLangText
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.ObjectOutputStream
-import kotlin.script.experimental.api.*
+import kotlin.script.experimental.api.EvaluationResult
+import kotlin.script.experimental.api.ResultWithDiagnostics
+import kotlin.script.experimental.api.onSuccess
 import kotlin.script.experimental.host.toScriptSource
 
 object GlaiCompiler {

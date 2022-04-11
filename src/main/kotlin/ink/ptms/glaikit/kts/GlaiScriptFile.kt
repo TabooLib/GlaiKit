@@ -12,11 +12,7 @@ import kotlin.script.experimental.api.CompiledScript
  * @author 坏黑
  * @since 2022/4/12 01:57
  */
-class GlaiScriptFile(
-    val sourceFile: File,
-    compileArgs: Array<Any>,
-    compiledScript: CompiledScript,
-) : GlaiScript(compiledScript) {
+class GlaiScriptFile(val sourceFile: File, compileArgs: Array<Any>, compiledScript: CompiledScript) : GlaiScript(compiledScript) {
 
     /**
      * [0]：文件签名

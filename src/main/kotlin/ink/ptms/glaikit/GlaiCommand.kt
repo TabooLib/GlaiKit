@@ -39,7 +39,7 @@ object GlaiCommand {
             execute<ProxyCommandSender> { sender, _, argument ->
                 val file = File(getDataFolder(), "scripts/${argument}")
                 if (file.exists() && (file.extension == "kts" || file.extension == "kit")) {
-                    GlaiEvaluator.evalAndReport(file).thenAccept {
+                    GlaiEvaluator.eval(file).thenAccept {
                         info(console().asLangText("script-eval", file.name))
                     }
                 } else {

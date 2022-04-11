@@ -1,5 +1,6 @@
 package ink.ptms.glaikit
 
+import ink.ptms.glaikit.kts.GlaiEvaluator
 import taboolib.common.env.RuntimeDependencies
 import taboolib.common.env.RuntimeDependency
 import taboolib.common.platform.Plugin

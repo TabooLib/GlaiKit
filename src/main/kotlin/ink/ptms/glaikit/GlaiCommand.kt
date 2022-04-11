@@ -1,5 +1,6 @@
 package ink.ptms.glaikit
 
+import ink.ptms.glaikit.kts.GlaiEvaluator
 import taboolib.common.io.newFile
 import taboolib.common.platform.ProxyCommandSender
 import taboolib.common.platform.command.CommandBody
@@ -13,12 +14,11 @@ import taboolib.expansion.createHelper
 import taboolib.module.lang.asLangText
 import taboolib.module.lang.sendLang
 import java.io.File
-import kotlin.script.experimental.api.ResultWithDiagnostics
-import kotlin.script.experimental.api.onFailure
-import kotlin.script.experimental.api.onSuccess
 
 @CommandHeader(name = "glaikit", permission = "*", aliases = ["kit"])
 object GlaiCommand {
+
+    val scriptFile = newFile(getDataFolder(), "scripts", folder = true)
 
     @CommandBody
     val main = mainCommand {
@@ -34,15 +34,13 @@ object GlaiCommand {
         }
         dynamic(commit = "file") {
             suggestion<ProxyCommandSender>(uncheck = true) { _, _ ->
-                newFile(getDataFolder(), "scripts", folder = true).listFiles()
-                    ?.filter { it.extension == "kts" || it.extension == "kit" }
-                    ?.map { it.name }
+                scriptFile.listFiles()?.filter { it.extension == "kts" || it.extension == "kit" }?.map { it.name }
             }
             execute<ProxyCommandSender> { sender, _, argument ->
                 val file = File(getDataFolder(), "scripts/${argument}")
                 if (file.exists() && (file.extension == "kts" || file.extension == "kit")) {
-                    GlaiEvaluator.evalFileAndReport(file).thenAccept {
-                        info(": ${file.name} : ${console().asLangText("script-eval")}")
+                    GlaiEvaluator.evalAndReport(file).thenAccept {
+                        info(console().asLangText("script-eval", file.name))
                     }
                 } else {
                     sender.sendLang("script-file-not-found", argument)

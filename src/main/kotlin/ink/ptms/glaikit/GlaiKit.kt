@@ -4,6 +4,7 @@ import ink.ptms.glaikit.kts.GlaiEvaluator
 import taboolib.common.env.RuntimeDependencies
 import taboolib.common.env.RuntimeDependency
 import taboolib.common.platform.Plugin
+import java.io.File
 
 @RuntimeDependencies(
     RuntimeDependency("org.jetbrains.intellij.deps:trove4j:1.0.20181211"),

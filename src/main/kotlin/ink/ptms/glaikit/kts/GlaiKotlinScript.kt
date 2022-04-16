@@ -1,7 +1,7 @@
 package ink.ptms.glaikit.kts
 
 import ink.ptms.glaikit.GlaiEnv
-import ink.ptms.glaikit.scripting.ScriptBase
+import ink.ptms.glaikit.scripting.Script
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.kotlin.mainKts.CompilerOptions
 import org.jetbrains.kotlin.mainKts.Import
@@ -34,7 +34,7 @@ class GlaiKotlinScript(val args: Array<String>)
 @Suppress("SimplifiableCallChain")
 class GlaiCompilationConfiguration(val props: ScriptRuntimeProperty = ScriptRuntimeProperty()) : ScriptCompilationConfiguration(
     {
-        baseClass(ScriptBase::class)
+        baseClass(Script::class)
         defaultImports(DependsOn::class, Repository::class, Import::class, CompilerOptions::class)
         defaultImports.append(GlaiEnv.globalImports)
         jvm {
@@ -56,8 +56,9 @@ class GlaiCompilationConfiguration(val props: ScriptRuntimeProperty = ScriptRunt
 /**
  * 运行配置
  */
-class GlaiEvaluationConfiguration(val props: ScriptRuntimeProperty = ScriptRuntimeProperty()) : ScriptEvaluationConfiguration(
+class GlaiEvaluationConfiguration(val id: String, val props: ScriptRuntimeProperty = ScriptRuntimeProperty()) : ScriptEvaluationConfiguration(
     {
+        constructorArgs(id)
         scriptsInstancesSharing(true)
         jvm {
             baseClassLoader(GlaiCompilationConfiguration::class.java.classLoader)
@@ -129,4 +130,20 @@ private fun findImportFile(sourceName: String): File? {
     File(getDataFolder(), "scripts/.lazy/$sourceName").takeIf { it.exists() }?.let { return it }
     File(getDataFolder(), "scripts/$sourceName").takeIf { it.exists() }?.let { return it }
     return null
+}
+
+/**
+ * 获取目录下所有有效脚本文件
+ */
+fun File.findScripts(): Set<File> {
+    if (name.startsWith('.')) {
+        return emptySet()
+    }
+    if (isDirectory) {
+        return listFiles()?.flatMap { it.findScripts() }?.toSet() ?: emptySet()
+    }
+    if (extension == "kts" || extension == "kit") {
+        return setOf(this)
+    }
+    return emptySet()
 }

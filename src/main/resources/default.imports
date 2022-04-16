@@ -6,6 +6,12 @@
 -javax
 -java.awt
 -java.applet
+-java.beans
+-java.nio
+-java.net
+-java.rmi
+-java.security
+-java.sql
 
 -kotlin.annotation
 -kotlin.comparisons
@@ -38,6 +44,8 @@ java
 -taboolib.common.inject
 -taboolib.common.util.Location
 -taboolib.common.util.Vector
+-taboolib.common.platform.command
+-taboolib.common.platform.function
 -taboolib.library.asm
 -taboolib.library.fastclasspathscanner
 -taboolib.library.jarrelocator
@@ -55,7 +63,6 @@ ink.ptms.glaikit.scripting
 -org.bukkit.generator
 -org.bukkit.help
 -org.bukkit.loot
--org.bukkit.inventory.meta
 -org.bukkit.metadata
 -org.bukkit.permissions
 -org.bukkit.persistence

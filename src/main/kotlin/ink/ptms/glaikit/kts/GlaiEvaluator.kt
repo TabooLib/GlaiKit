@@ -27,7 +27,7 @@ import kotlin.script.experimental.jvmhost.BasicJvmScriptingHost
  */
 object GlaiEvaluator {
 
-    val scriptingHost = BasicJvmScriptingHost()
+    internal val scriptingHost = BasicJvmScriptingHost()
 
     /**
      * 运行所有脚本文件
@@ -38,19 +38,25 @@ object GlaiEvaluator {
         newFile(getDataFolder(), "scripts/.lazy", folder = true)
         newFile(getDataFolder(), "scripts/.build", folder = true)
         // 加载脚本
-        fun load(file: File) {
-            if (file.name.startsWith(".")) {
-                return
-            }
-            file.listFiles()?.forEach {
-                if (it.isDirectory) {
-                    load(it)
-                } else if (it.extension == "kts") {
-                    eval(it, compileAsync = compileAsync)
-                }
-            }
+        newFile(getDataFolder(), "scripts", folder = true).findScripts().forEach {
+            eval(it, compileAsync = compileAsync)
         }
-        load(newFile(getDataFolder(), "scripts", folder = true))
+    }
+
+    /**
+     * 判断脚本是否正在运行
+     */
+    fun isScriptRunning(file: File): Boolean {
+        return GlaiScriptManager.getScriptContainer(file.nameWithoutExtension) != null
+    }
+
+    /**
+     * 报告脚本结果
+     */
+    fun reportResult(result: List<ScriptDiagnostic>, messageReceiver: ProxyCommandSender, id: String) {
+        result.filter { it.severity > ScriptDiagnostic.Severity.DEBUG && !it.message.contains("never used") }.forEach {
+            messageReceiver.sendLang("script-eval-report", id, it.message + if (it.exception == null) "" else ": ${it.exception}")
+        }
     }
 
     /**
@@ -77,32 +83,42 @@ object GlaiEvaluator {
         val future = CompletableFuture<ResultWithDiagnostics<EvaluationResult>>()
         val digest = arrayOf(file.digest("sha-1"), runtimeProperty.digest)
 
+        // 检查脚本是否正在运行
+        if (isScriptRunning(file)) {
+            messageReceiver.sendLang("script-is-running", file.nameWithoutExtension)
+            return future
+        }
+
         /**
          * 运行脚本
          */
-        fun run(file: File, warning: Boolean): Boolean {
+        fun run(file: File, checkFile: Boolean = true): Boolean {
+            val name = file.nameWithoutExtension
             val compiledFile = GlaiScriptFile.loadFromFile(file)
-            return if (compiledFile.digest[1] != digest[1]) {
-                // 启用警告则告知用户参数错误
-                if (warning) {
-                    messageReceiver.sendLang("script-compile-property-not-match", file.name, compiledFile.propsSize, compiledFile.propsDescription)
-                }
+            return if (checkFile && compiledFile.digest[0] != digest[0]) {
+                false
+            } else if (compiledFile.digest[1] != digest[1]) {
+                messageReceiver.sendLang("script-compile-property-not-match", name, compiledFile.propsSize, compiledFile.propsDescription)
                 false
             } else {
-                future.complete(compiledFile.eval(runtimeProperty))
+                future.complete(compiledFile.eval(name, runtimeProperty))
+                if (logging) {
+                    info(console().asLangText("script-eval", name))
+                }
                 true
             }
         }
 
         // 直接运行编译文件
         if (file.extension == "kit") {
-            run(file, true)
+            run(file, checkFile = false)
             return future
         }
 
         // 使用缓存
-        val cacheFile = File(getDataFolder(), "scripts/.build/${file.nameWithoutExtension}.kit")
-        if (cacheFile.exists() && cache && run(cacheFile, false)) {
+        val name = file.nameWithoutExtension
+        val cacheFile = File(getDataFolder(), "scripts/.build/$name.kit")
+        if (cacheFile.exists() && cache && run(cacheFile)) {
             return future
         }
 
@@ -111,30 +127,24 @@ object GlaiEvaluator {
         submit(async = compileAsync) {
             runBlocking {
                 if (logging) {
-                    info(console().asLangText("script-compile", file.name))
+                    info(console().asLangText("script-compile", name))
                 }
                 val time = System.currentTimeMillis()
                 val compiledFile = if (cache) cacheFile else null
                 val configuration = GlaiCompilationConfiguration(runtimeProperty)
                 GlaiCompiler.compile(configuration, file, compiledFile, digest) {
                     if (logging) {
-                        info(console().asLangText("script-compile-success", file.name, System.currentTimeMillis() - time))
+                        info(console().asLangText("script-compile-success", name, System.currentTimeMillis() - time))
                     }
                     // 编译完成后自动运行脚本
-                    it.eval(runtimeProperty).also { r -> future.complete(r) }
+                    it.eval(name, runtimeProperty).also { r -> future.complete(r) }
                 }.onFailure { r -> future.complete(r) }
             }
         }
 
         // 报告运行结果
         if (report) {
-            future.thenApply { result ->
-                result.reports.forEach { rea ->
-                    if (rea.severity > ScriptDiagnostic.Severity.DEBUG && !rea.message.contains("never used")) {
-                        messageReceiver.sendLang("script-eval-report", file.name, rea.message + if (rea.exception == null) "" else ": ${rea.exception}")
-                    }
-                }
-            }
+            future.thenApply { result -> reportResult(result.reports, messageReceiver, file.nameWithoutExtension) }
         }
         return future
     }

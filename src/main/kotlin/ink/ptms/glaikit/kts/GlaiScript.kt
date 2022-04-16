@@ -15,16 +15,15 @@ import kotlin.script.experimental.api.ResultWithDiagnostics
  */
 open class GlaiScript(val compiledScript: CompiledScript) {
 
-    fun newGlaiEvaluationConfiguration(props: ScriptRuntimeProperty): GlaiEvaluationConfiguration {
-        return GlaiEvaluationConfiguration(props)
+    fun newGlaiEvaluationConfiguration(id: String, props: ScriptRuntimeProperty): GlaiEvaluationConfiguration {
+        return GlaiEvaluationConfiguration(id, props)
     }
 
-    fun eval(props: ScriptRuntimeProperty): ResultWithDiagnostics<EvaluationResult> {
-        return eval(newGlaiEvaluationConfiguration(props))
+    fun eval(id: String, props: ScriptRuntimeProperty): ResultWithDiagnostics<EvaluationResult> {
+        return eval(newGlaiEvaluationConfiguration(id, props))
     }
 
     fun eval(evaluationConfiguration: GlaiEvaluationConfiguration): ResultWithDiagnostics<EvaluationResult> {
-        // TODO: 2022/4/12 脚本注入
         return runBlocking { GlaiEvaluator.scriptingHost.evaluator(compiledScript, evaluationConfiguration) }
     }
 

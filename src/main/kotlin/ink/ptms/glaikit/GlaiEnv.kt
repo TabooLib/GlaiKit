@@ -1,6 +1,7 @@
 package ink.ptms.glaikit
 
 import io.github.lukehutch.fastclasspathscanner.FastClasspathScanner
+import taboolib.common.io.newFile
 import taboolib.common.platform.function.getDataFolder
 import taboolib.common.platform.function.releaseResourceFile
 import java.io.File
@@ -31,6 +32,7 @@ object GlaiEnv {
     fun setupGlobalImports() {
         globalImports.clear()
         globalImports.addAll(loadImportsFromFile(releaseResourceFile("default.imports")))
+        newFile(getDataFolder(), "out.imports").writeText(globalImports.joinToString("\n"), StandardCharsets.UTF_8)
         globalImports.addAll(loadFunctionsFromFile(releaseResourceFile("default.functions")))
     }
 

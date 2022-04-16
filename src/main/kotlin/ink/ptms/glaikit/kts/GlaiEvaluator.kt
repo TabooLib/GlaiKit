@@ -39,7 +39,7 @@ object GlaiEvaluator {
         newFile(getDataFolder(), "scripts/.build", folder = true)
         // 加载脚本
         newFile(getDataFolder(), "scripts", folder = true).findScripts().forEach {
-            eval(it, compileAsync = compileAsync)
+            eval(it, logging = false, compileAsync = compileAsync)
         }
     }
 

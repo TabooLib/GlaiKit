@@ -1,6 +1,7 @@
 package ink.ptms.glaikit
 
 import ink.ptms.glaikit.kts.GlaiEvaluator
+import ink.ptms.glaikit.kts.GlaiScriptManager
 import taboolib.common.env.RuntimeDependencies
 import taboolib.common.env.RuntimeDependency
 import taboolib.common.platform.Plugin
@@ -26,5 +27,9 @@ object GlaiKit : Plugin() {
         } catch (ex: Throwable) {
             ex.printStackTrace()
         }
+    }
+
+    override fun onDisable() {
+        GlaiScriptManager.getScriptContainers().forEach { it.release() }
     }
 }

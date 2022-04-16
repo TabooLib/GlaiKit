@@ -32,7 +32,7 @@ object GlaiEnv {
     fun setupGlobalImports() {
         globalImports.clear()
         globalImports.addAll(loadImportsFromFile(releaseResourceFile("default.imports")))
-        newFile(getDataFolder(), "out.imports").writeText(globalImports.joinToString("\n"), StandardCharsets.UTF_8)
+        // newFile(getDataFolder(), "out.imports").writeText(globalImports.joinToString("\n"), StandardCharsets.UTF_8)
         globalImports.addAll(loadFunctionsFromFile(releaseResourceFile("default.functions")))
     }
 

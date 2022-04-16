@@ -27,20 +27,21 @@ object GlaiCommand {
     @CommandBody
     val eval = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            if (scriptFolder.findScripts().isEmpty()) {
+            val scripts = scriptFolder.findScripts().filter { !GlaiEvaluator.isScriptRunning(it) }
+            if (scripts.isEmpty()) {
                 sender.sendLang("script-eval-empty")
             } else {
                 GlaiEnv.setupGlobalImports()
-                GlaiEvaluator.setupScriptFiles()
+                scripts.forEach { GlaiEvaluator.eval(it, messageReceiver = sender) }
             }
         }
         dynamic(commit = "file") {
             suggestion<ProxyCommandSender>(uncheck = true) { _, _ ->
-                scriptFolder.findScripts().map { it.name }
+                scriptFolder.findScripts().map { it.name }.toSet().toList()
             }
             execute<ProxyCommandSender> { sender, _, argument ->
-                val file = File(getDataFolder(), "scripts/${argument}")
-                if (file.exists() && (file.extension == "kts" || file.extension == "kit")) {
+                val file = script(argument)
+                if (file != null) {
                     GlaiEvaluator.eval(file, messageReceiver = sender)
                 } else {
                     sender.sendLang("script-file-not-found", argument)
@@ -63,13 +64,13 @@ object GlaiCommand {
         }
         dynamic(commit = "file") {
             suggestion<ProxyCommandSender>(uncheck = true) { _, _ ->
-                scriptFolder.findScripts().map { it.name }
+                scriptFolder.findScripts().map { it.name }.toSet().toList()
             }
             execute<ProxyCommandSender> { sender, _, argument ->
                 submit(async = true) {
-                    val file = File(getDataFolder(), "scripts/${argument}")
-                    if (file.exists() && (file.extension == "kts" || file.extension == "kit")) {
-                        compile(sender, File(getDataFolder(), "scripts/${argument}"))
+                    val file = script(argument)
+                    if (file != null) {
+                        compile(sender, file)
                     } else {
                         sender.sendLang("script-file-not-found", argument)
                     }
@@ -90,7 +91,7 @@ object GlaiCommand {
             }
         }
         dynamic(commit = "file") {
-            suggestion<ProxyCommandSender>(uncheck = true) { _, _ ->
+            suggestion<ProxyCommandSender> { _, _ ->
                 GlaiScriptManager.getScriptContainers().map { it.baseId }
             }
             execute<ProxyCommandSender> { sender, _, argument ->
@@ -106,6 +107,20 @@ object GlaiCommand {
             GlaiEnv.setupGlobalImports()
             sender.sendLang("script-reload")
         }
+        dynamic(commit = "script") {
+            suggestion<ProxyCommandSender> { _, _ ->
+                GlaiScriptManager.getScriptContainers().map { it.baseId }
+            }
+            execute<ProxyCommandSender> { sender, _, argument ->
+                GlaiScriptManager.getScriptContainer(argument)!!.release()
+                val file = script(argument)
+                if (file != null) {
+                    GlaiEvaluator.eval(file, messageReceiver = sender)
+                } else {
+                    sender.sendLang("script-file-not-found", argument)
+                }
+            }
+        }
     }
 
     @CommandBody
@@ -113,6 +128,10 @@ object GlaiCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
             sender.sendLang("script-info", GlaiScriptManager.getScriptContainers().map { it.baseId }.toString())
         }
+    }
+
+    fun script(name: String): File? {
+        return scriptFolder.findScripts().firstOrNull { it.name == name || it.nameWithoutExtension == name }
     }
 
     fun compile(sender: ProxyCommandSender, file: File) {

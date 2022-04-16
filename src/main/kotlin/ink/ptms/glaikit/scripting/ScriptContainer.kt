@@ -1,6 +1,7 @@
 package ink.ptms.glaikit.scripting
 
 import ink.ptms.glaikit.kts.GlaiScriptManager
+import taboolib.module.configuration.createLocal
 import java.io.Closeable
 import kotlin.collections.ArrayList
 

@@ -133,7 +133,7 @@ object GlaiCommand {
     @CommandBody
     val info = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
-            sender.sendLang("script-info", GlaiScriptManager.getScriptContainers().map { it.baseId }.toString())
+            sender.sendLang("script-info", GlaiScriptManager.getScriptContainers().map { it.baseId }.joinToString(", "))
         }
     }
 

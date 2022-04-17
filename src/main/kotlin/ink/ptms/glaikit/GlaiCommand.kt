@@ -1,6 +1,7 @@
 package ink.ptms.glaikit
 
 import ink.ptms.glaikit.kts.*
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.runBlocking
 import taboolib.common.io.newFile
 import taboolib.common.platform.ProxyCommandSender
@@ -57,7 +58,7 @@ object GlaiCommand {
             if (scripts.isEmpty()) {
                 sender.sendLang("script-compile-empty")
             } else {
-                submit(async = true) {
+                asyncBlocking {
                     scripts.forEach { compile(sender, it) }
                 }
             }
@@ -67,7 +68,7 @@ object GlaiCommand {
                 scriptFolder.findScripts().map { it.name }.toSet().toList()
             }
             execute<ProxyCommandSender> { sender, _, argument ->
-                submit(async = true) {
+                asyncBlocking {
                     val file = script(argument)
                     if (file != null) {
                         compile(sender, file)
@@ -104,6 +105,7 @@ object GlaiCommand {
     @CommandBody
     val reload = subCommand {
         execute<ProxyCommandSender> { sender, _, _ ->
+            GlaiKit.conf.reload()
             GlaiEnv.setupGlobalImports()
             sender.sendLang("script-reload")
         }
@@ -112,12 +114,17 @@ object GlaiCommand {
                 GlaiScriptManager.getScriptContainers().map { it.baseId }
             }
             execute<ProxyCommandSender> { sender, _, argument ->
-                GlaiScriptManager.getScriptContainer(argument)!!.release()
-                val file = script(argument)
-                if (file != null) {
-                    GlaiEvaluator.eval(file, messageReceiver = sender)
-                } else {
-                    sender.sendLang("script-file-not-found", argument)
+                asyncBlocking {
+                    val file = script(argument)
+                    if (file != null) {
+                        // 先编译再释放
+                        if (compile(sender, file)) {
+                            GlaiScriptManager.getScriptContainer(argument)!!.release()
+                            GlaiEvaluator.eval(file, messageReceiver = sender)
+                        }
+                    } else {
+                        sender.sendLang("script-file-not-found", argument)
+                    }
                 }
             }
         }
@@ -134,15 +141,21 @@ object GlaiCommand {
         return scriptFolder.findScripts().firstOrNull { it.name == name || it.nameWithoutExtension == name }
     }
 
-    fun compile(sender: ProxyCommandSender, file: File) {
+    suspend fun compile(sender: ProxyCommandSender, file: File): Boolean {
         val name = file.nameWithoutExtension
         sender.sendLang("script-compile", name)
         val time = System.currentTimeMillis()
         val compiledFile = File(getDataFolder(), "scripts/.build/$name.kit")
         val configuration = GlaiCompilationConfiguration(ScriptRuntimeProperty())
-        runBlocking {
-            GlaiCompiler.compileToScript(configuration, file, compiledFile, sender)
+        val script = GlaiCompiler.compileToScript(configuration, file, compiledFile, sender)
+        if (script != null) {
             sender.sendLang("script-compile-success", name, System.currentTimeMillis() - time)
+            return true
         }
+        return false
+    }
+
+    fun asyncBlocking(block: suspend CoroutineScope.() -> Unit) {
+        submit(async = true) { runBlocking { block() } }
     }
 }

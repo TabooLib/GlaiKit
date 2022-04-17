@@ -5,7 +5,8 @@ import ink.ptms.glaikit.kts.GlaiScriptManager
 import taboolib.common.env.RuntimeDependencies
 import taboolib.common.env.RuntimeDependency
 import taboolib.common.platform.Plugin
-import java.io.File
+import taboolib.module.configuration.Config
+import taboolib.module.configuration.Configuration
 
 @RuntimeDependencies(
     RuntimeDependency("org.jetbrains.intellij.deps:trove4j:1.0.20181211"),
@@ -18,6 +19,10 @@ import java.io.File
     RuntimeDependency("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.8"),
 )
 object GlaiKit : Plugin() {
+
+    @Config
+    lateinit var conf: Configuration
+        private set
 
     override fun onEnable() {
         GlaiEnv.setupClasspath()

@@ -1,5 +1,6 @@
 package ink.ptms.glaikit.kts
 
+import ink.ptms.glaikit.GlaiKit
 import kotlinx.coroutines.runBlocking
 import taboolib.common.io.digest
 import taboolib.common.io.newFile
@@ -54,7 +55,8 @@ object GlaiEvaluator {
      * 报告脚本结果
      */
     fun reportResult(result: List<ScriptDiagnostic>, messageReceiver: ProxyCommandSender, id: String) {
-        result.filter { it.severity > ScriptDiagnostic.Severity.DEBUG && !it.message.contains("never used") }.forEach {
+        val ignore = GlaiKit.conf.getStringList("ignore-result-message")
+        result.filter { it.severity > ScriptDiagnostic.Severity.DEBUG && ignore.none { i -> i in it.message } }.forEach {
             messageReceiver.sendLang("script-eval-report", id, it.message + if (it.exception == null) "" else ": ${it.exception}")
         }
     }
@@ -103,7 +105,7 @@ object GlaiEvaluator {
             } else {
                 future.complete(compiledFile.eval(name, runtimeProperty))
                 if (logging) {
-                    info(console().asLangText("script-eval", name))
+                    messageReceiver.sendLang("script-eval", name)
                 }
                 true
             }
@@ -127,14 +129,14 @@ object GlaiEvaluator {
         submit(async = compileAsync) {
             runBlocking {
                 if (logging) {
-                    info(console().asLangText("script-compile", name))
+                    messageReceiver.sendLang("script-compile", name)
                 }
                 val time = System.currentTimeMillis()
                 val compiledFile = if (cache) cacheFile else null
                 val configuration = GlaiCompilationConfiguration(runtimeProperty)
                 GlaiCompiler.compile(configuration, file, compiledFile, digest) {
                     if (logging) {
-                        info(console().asLangText("script-compile-success", name, System.currentTimeMillis() - time))
+                        messageReceiver.sendLang("script-compile-success", name, System.currentTimeMillis() - time)
                     }
                     // 编译完成后自动运行脚本
                     it.eval(name, runtimeProperty).also { r -> future.complete(r) }

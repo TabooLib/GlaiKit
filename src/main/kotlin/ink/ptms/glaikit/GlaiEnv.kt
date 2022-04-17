@@ -21,7 +21,7 @@ object GlaiEnv {
         val classpath = ArrayList<File>()
         classpath += File(getDataFolder(), "require").listFiles()!!.filter { it.extension == "jar" }
         classpath += File("plugins").listFiles()!!.filter { it.extension == "jar" }
-        System.setProperty("kotlin.script.classpath", classpath.joinToString(":") { it.canonicalPath })
+        System.setProperty("kotlin.script.classpath", classpath.joinToString(":") { it.path })
     }
 
     val globalImports = ArrayList<String>()

@@ -6,6 +6,8 @@ import taboolib.common.platform.function.getDataFolder
 import taboolib.common.platform.function.releaseResourceFile
 import java.io.File
 import java.nio.charset.StandardCharsets
+import java.util.*
+import kotlin.collections.ArrayList
 
 object GlaiEnv {
 
@@ -21,7 +23,8 @@ object GlaiEnv {
         val classpath = ArrayList<File>()
         classpath += File(getDataFolder(), "require").listFiles()!!.filter { it.extension == "jar" }
         classpath += File("plugins").listFiles()!!.filter { it.extension == "jar" }
-        System.setProperty("kotlin.script.classpath", classpath.joinToString(":") { it.path })
+        val separator = if (System.getProperty("os.name").lowercase().contains("windows")) ";" else ":"
+        System.setProperty("kotlin.script.classpath", classpath.joinToString(separator) { it.path })
     }
 
     val globalImports = ArrayList<String>()

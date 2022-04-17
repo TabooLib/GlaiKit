@@ -28,6 +28,11 @@ class ScriptContainer(val script: Script) {
         if (isEnabled) {
             isEnabled = false
             try {
+                script.release()
+            } catch (ex: Throwable) {
+                ex.printStackTrace()
+            }
+            try {
                 resources.forEach { it.close() }
             } catch (ex: Throwable) {
                 ex.printStackTrace()

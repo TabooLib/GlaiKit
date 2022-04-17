@@ -25,6 +25,9 @@ abstract class Script(val baseId: String) {
 
     val scriptContainer = GlaiScriptManager.registerScriptContainer(baseId, this)
 
+    open fun release() {
+    }
+
     /**
      * 注册监听器（简写别名）
      */

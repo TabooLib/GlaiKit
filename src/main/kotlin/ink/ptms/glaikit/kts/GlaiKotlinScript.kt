@@ -1,10 +1,11 @@
 package ink.ptms.glaikit.kts
 
 import ink.ptms.glaikit.GlaiEnv
+import ink.ptms.glaikit.scripting.Import
+import ink.ptms.glaikit.scripting.Include
 import ink.ptms.glaikit.scripting.Script
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.kotlin.mainKts.CompilerOptions
-import org.jetbrains.kotlin.mainKts.Import
 import org.jetbrains.kotlin.mainKts.impl.IvyResolver
 import taboolib.common.platform.function.getDataFolder
 import java.io.File
@@ -35,14 +36,20 @@ class GlaiKotlinScript(val args: Array<String>)
 class GlaiCompilationConfiguration(val props: ScriptRuntimeProperty = ScriptRuntimeProperty()) : ScriptCompilationConfiguration(
     {
         baseClass(Script::class)
-        defaultImports(DependsOn::class, Repository::class, Import::class, CompilerOptions::class)
+        defaultImports(DependsOn::class, Repository::class, Include::class, Import::class, CompilerOptions::class)
         defaultImports.append(GlaiEnv.globalImports)
         jvm {
             dependenciesFromClassContext(GlaiCompilationConfiguration::class, wholeClasspath = true)
             compilerOptions("-jvm-target", "1.8")
         }
         refineConfiguration {
-            onAnnotations(DependsOn::class, Repository::class, Import::class, CompilerOptions::class, handler = GlaiCompilationConfigurationHandler())
+            onAnnotations(
+                DependsOn::class,
+                Repository::class,
+                Include::class,
+                Import::class,
+                CompilerOptions::class,
+                handler = GlaiCompilationConfigurationHandler())
         }
         ide {
             acceptedLocations(ScriptAcceptedLocation.Everywhere)
@@ -99,11 +106,15 @@ class GlaiCompilationConfigurationHandler : RefineScriptCompilationConfiguration
         val annotations = context.collectedData?.get(ScriptCollectedData.collectedAnnotations)?.takeIf { it.isNotEmpty() }
             ?: return context.compilationConfiguration.asSuccess()
 
-        val importedSources = annotations.filterByAnnotationType<Import>().flatMap {
-            it.annotation.paths.mapNotNull { sourceName ->
-                FileScriptSource(findImportFile(sourceName) ?: return@mapNotNull null)
-            }
+        val folder = File(getDataFolder(), "scripts")
+        val importedSources = annotations.filterByAnnotationType<Include>().flatMap {
+            it.annotation.paths.mapNotNull { sourceName -> FileScriptSource(folder.findInclude(sourceName).firstOrNull() ?: return@mapNotNull null) }
         }
+
+        val importedPlugins = annotations.filterByAnnotationType<Import>().flatMap {
+            it.annotation.plugins.flatMap { pluginName -> GlaiEnv.loadImportFromPlugin(pluginName) }
+        }
+
         val compileOptions = annotations.filterByAnnotationType<CompilerOptions>().flatMap {
             it.annotation.options.toList()
         }
@@ -119,17 +130,28 @@ class GlaiCompilationConfigurationHandler : RefineScriptCompilationConfiguration
         return resolveResult.onSuccess { resolvedClassPath ->
             ScriptCompilationConfiguration(context.compilationConfiguration) {
                 updateClasspath(resolvedClassPath)
-                if (importedSources.isNotEmpty()) importScripts.append(importedSources)
-                if (compileOptions.isNotEmpty()) compilerOptions.append(compileOptions)
+                if (importedSources.isNotEmpty()) {
+                    importScripts.append(importedSources)
+                }
+                if (importedPlugins.isNotEmpty()) {
+                    defaultImports.append(importedPlugins)
+                }
+                if (compileOptions.isNotEmpty()) {
+                    compilerOptions.append(compileOptions)
+                }
             }.asSuccess()
         }
     }
 }
 
-private fun findImportFile(sourceName: String): File? {
-    File(getDataFolder(), "scripts/.lazy/$sourceName").takeIf { it.exists() }?.let { return it }
-    File(getDataFolder(), "scripts/$sourceName").takeIf { it.exists() }?.let { return it }
-    return null
+private fun File.findInclude(script: String): Set<File> {
+    if (isDirectory) {
+        return listFiles()?.flatMap { it.findScripts() }?.toSet() ?: emptySet()
+    }
+    if (name == script || (nameWithoutExtension == script && extension == "kts")) {
+        return setOf(this)
+    }
+    return emptySet()
 }
 
 /**
